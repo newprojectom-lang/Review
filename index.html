@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Everyday Earning</title>
+
+<!-- FIREBASE LIBRARIES -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<style>
+body{
+margin:0;
+font-family:Arial, sans-serif;
+background:#f4f4f4;
+}
+
+#loginScreen, #loadingScreen{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+display:flex;
+align-items:center;
+justify-content:center;
+flex-direction:column;
+background:white;
+}
+
+#loadingScreen{
+display:none;
+}
+
+button{
+padding:12px 20px;
+border:none;
+background:#4285F4;
+color:white;
+border-radius:8px;
+font-size:16px;
+}
+
+#mainHeader{
+display:none;
+background:#6200ea;
+color:white;
+padding:15px;
+text-align:center;
+}
+
+#mainContainer{
+display:none;
+padding:20px;
+}
+
+.section{
+display:none;
+background:white;
+padding:15px;
+border-radius:10px;
+box-shadow:0 0 5px rgba(0,0,0,0.1);
+margin-top:10px;
+}
+
+.coin-box{
+background:#ffeb3b;
+padding:10px;
+border-radius:8px;
+text-align:center;
+font-weight:bold;
+}
+
+.menu{
+display:flex;
+gap:10px;
+margin-top:10px;
+}
+
+.menu button{
+background:#333;
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen">
+<h2>Everyday Earning</h2>
+<button onclick="loginWithGoogle()">Continue with Google</button>
+</div>
+
+<!-- LOADING SCREEN -->
+<div id="loadingScreen">
+<h2>Loading...</h2>
+</div>
+
+<!-- HEADER AFTER LOGIN -->
+<div id="mainHeader">
+<h2>Everyday Earning Dashboard</h2>
+</div>
+
+<!-- MAIN CONTENT -->
+<div id="mainContainer">
+
+<div class="coin-box">
+Coins: <span id="coinCount">0</span>
+</div>
+
+<div class="menu">
+<button onclick="showSection('generator')">Generate Comment</button>
+<button onclick="showSection('withdraw')">Withdraw</button>
+</div>
+
+<!-- GENERATOR SECTION -->
+<div id="generator" class="section">
+<h3>Comment Generator</h3>
+<p>Click below to generate comment (No auto coins)</p>
+<button onclick="generateComment()">Generate Comment</button>
+<p id="generatedComment"></p>
+</div>
+
+<!-- WITHDRAW SECTION -->
+<div id="withdraw" class="section">
+<h3>Withdraw Coins</h3>
+<input type="text" id="upi" placeholder="Enter UPI ID">
+<input type="number" id="amount" placeholder="Enter Coins">
+<button onclick="requestWithdrawal()">Request Withdraw</button>
+<p id="withdrawMsg"></p>
+</div>
+
+<script>
+// 🔥 TUMHARA FIREBASE CONFIG (JO TUMNE DIYA THA)
+const firebaseConfig = {
+apiKey: "AIzaSyAbG7082Q3AjK8Ca_Zio0D3NtF92A0BLME",
+authDomain: "review-website-54473.firebaseapp.com",
+projectId: "review-website-54473",
+storageBucket: "review-website-54473.firebasestorage.app",
+messagingSenderId: "456159060189",
+appId: "1:456159060189:web:c0daefe6e4ebfd271d3b34",
+measurementId: "G-L5C53HCZVY",
+databaseURL: "https://review-website-54473-default-rtdb.firebaseio.com/"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const database = firebase.database();
+
+let user = null;
+
+// REAL GOOGLE LOGIN
+function loginWithGoogle(){
+document.getElementById("loadingScreen").style.display="flex";
+
+let provider = new firebase.auth.GoogleAuthProvider();
+
+auth.signInWithPopup(provider)
+.then((result)=>{
+let u = result.user;
+
+user = {
+uid: u.uid,
+name: u.displayName || u.email.split("@")[0],
+email: u.email,
+coins: 0,
+withdrawals: []
+};
+
+// SAVE USER IN FIREBASE
+database.ref("users/"+user.uid).set(user);
+
+document.getElementById("loadingScreen").style.display="none";
+document.getElementById("loginScreen").style.display="none";
+document.getElementById("mainHeader").style.display="block";
+document.getElementById("mainContainer").style.display="block";
+
+showSection('generator');
+updateUI();
+})
+.catch(err=>{
+alert("Login failed: "+err.message);
+document.getElementById("loadingScreen").style.display="none";
+});
+}
+
+// LOAD USER IF ALREADY LOGGED IN
+window.onload = function(){
+auth.onAuthStateChanged((currentUser)=>{
+if(currentUser){
+database.ref("users/"+currentUser.uid).once("value", (snap)=>{
+user = snap.val();
+
+document.getElementById("loginScreen").style.display="none";
+document.getElementById("mainHeader").style.display="block";
+document.getElementById("mainContainer").style.display="block";
+
+showSection('generator');
+updateUI();
+});
+}
+});
+};
+
+// UI FUNCTIONS
+function showSection(id){
+document.getElementById("generator").style.display="none";
+document.getElementById("withdraw").style.display="none";
+document.getElementById(id).style.display="block";
+}
+
+function updateUI(){
+document.getElementById("coinCount").innerText = user.coins;
+}
+
+// GENERATE COMMENT (NO COINS ADD)
+function generateComment(){
+let comments = [
+"Great app!",
+"Nice service!",
+"Very helpful!",
+"Amazing experience!"
+];
+
+let c = comments[Math.floor(Math.random()*comments.length)];
+document.getElementById("generatedComment").innerText = c;
+}
+
+// WITHDRAW REQUEST
+function requestWithdrawal(){
+let upi = document.getElementById("upi").value;
+let amount = document.getElementById("amount").value;
+
+if(!upi || !amount){
+document.getElementById("withdrawMsg").innerText = "Enter UPI and amount!";
+return;
+}
+
+database.ref("withdrawals/"+user.uid).push({
+name: user.name,
+email: user.email,
+coins: amount,
+upi: upi,
+status: "Pending",
+date: new Date().toLocaleString()
+});
+
+document.getElementById("withdrawMsg").innerText = "Request sent to admin!";
+}
+
+</script>
+
+</body>
+</html>
