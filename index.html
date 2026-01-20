@@ -5,252 +5,479 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Everyday Earning</title>
 
-<!-- FIREBASE LIBRARIES -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <style>
-body{
-margin:0;
-font-family:Arial, sans-serif;
-background:#f4f4f4;
-}
+body{margin:0;font-family:Arial;background:#f4f4f4;}
 
 #loginScreen, #loadingScreen{
-position:fixed;
-top:0;
-left:0;
-width:100%;
-height:100%;
-display:flex;
-align-items:center;
-justify-content:center;
-flex-direction:column;
+position:fixed;top:0;left:0;width:100%;height:100%;
+display:flex;align-items:center;justify-content:center;flex-direction:column;
 background:white;
 }
-
-#loadingScreen{
-display:none;
-}
+#loadingScreen{display:none;}
 
 button{
-padding:12px 20px;
-border:none;
-background:#4285F4;
-color:white;
-border-radius:8px;
-font-size:16px;
+padding:10px 15px;border:none;
+background:#4285F4;color:white;border-radius:8px;
 }
 
-#mainHeader{
-display:none;
-background:#6200ea;
-color:white;
-padding:15px;
-text-align:center;
+#mainHeader{display:none;background:#6200ea;color:white;padding:10px;}
+
+.top-info{
+display:flex;justify-content:space-between;
+font-size:14px;
+margin-bottom:5px;
 }
 
-#mainContainer{
-display:none;
-padding:20px;
+.topbar{display:flex;justify-content:space-between;align-items:center;}
+.dots{font-size:25px;cursor:pointer;}
+
+#threeDotsMenu{
+display:none;position:absolute;right:10px;
+background:white;padding:10px;
+box-shadow:0 0 5px rgba(0,0,0,0.2);
 }
 
-.section{
-display:none;
-background:white;
-padding:15px;
-border-radius:10px;
-box-shadow:0 0 5px rgba(0,0,0,0.1);
-margin-top:10px;
+#threeDotsMenu button{
+display:block;
+margin:5px 0; /* SPACE BETWEEN BUTTONS */
+width:120px;
 }
+
+#mainContainer{display:none;padding:10px;}
+
+.section{display:none;background:white;padding:10px;border-radius:10px;margin-top:10px;}
 
 .coin-box{
-background:#ffeb3b;
+background:green;color:white;padding:10px;
+border-radius:8px;text-align:center;font-weight:bold;
+}
+
+.menu{display:flex;gap:5px;margin-top:10px;}
+
+.streak-box{
+display:grid;grid-template-columns:repeat(7,1fr);
+gap:5px;margin-top:10px;
+}
+.streak-box div{
+background:#ddd;padding:8px;
+text-align:center;border-radius:5px;
+}
+.day-done{background:gold !important;}
+
+.app-list button{
+display:block;width:100%;margin-top:5px;
+}
+
+.review-box{margin-top:10px;padding:10px;background:white;border-radius:10px;}
+.review{margin-top:5px;padding:5px;border-bottom:1px solid #ddd;}
+
+.notice{
+background:#fff3cd;
+color:#856404;
 padding:10px;
 border-radius:8px;
-text-align:center;
-font-weight:bold;
-}
-
-.menu{
-display:flex;
-gap:10px;
 margin-top:10px;
 }
-
-.menu button{
-background:#333;
+.copy-btn{
+background:black;
+margin-left:5px;
 }
-
 </style>
 </head>
 
 <body>
 
-<!-- LOGIN SCREEN -->
+<!-- LOGIN / REGISTER -->
 <div id="loginScreen">
 <h2>Everyday Earning</h2>
-<button onclick="loginWithGoogle()">Continue with Google</button>
+
+<input id="email" placeholder="Email" style="padding:8px;width:80%;margin:5px">
+<input id="password" type="password" placeholder="Password" style="padding:8px;width:80%;margin:5px">
+
+<button onclick="register()">Register</button>
+<button onclick="login()" style="background:green;margin-top:5px;">Login</button>
+
+<p id="loginMsg"></p>
 </div>
 
-<!-- LOADING SCREEN -->
-<div id="loadingScreen">
-<h2>Loading...</h2>
-</div>
+<div id="loadingScreen"><h2>Loading...</h2></div>
 
-<!-- HEADER AFTER LOGIN -->
+<!-- HEADER -->
 <div id="mainHeader">
-<h2>Everyday Earning Dashboard</h2>
+<div class="top-info">
+<span>Created: <span id="createDate"></span></span>
+<span>Coins: ₹<span id="coinRupees">0</span></span>
 </div>
 
-<!-- MAIN CONTENT -->
+<div class="topbar">
+<h2>Everyday Earning</h2>
+<span class="dots" onclick="toggleDots()">⋮</span>
+</div>
+
+<div id="threeDotsMenu">
+<button onclick="showHome()">Home</button>
+<button onclick="showProfile()">Profile</button>
+<button onclick="showHistory()">History</button>
+<button onclick="showSupport()">Customer Support</button>
+<button onclick="logout()" style="background:red;">Logout</button>
+</div>
+</div>
+
+<!-- MAIN -->
 <div id="mainContainer">
 
 <div class="coin-box">
-Coins: <span id="coinCount">0</span>
+Coins: <span id="coinCount">0</span> | Referrals: <span id="refCount">0</span>
 </div>
 
+<div class="streak-box" id="streakBox"></div>
+
 <div class="menu">
-<button onclick="showSection('generator')">Generate Comment</button>
+<button onclick="showSection('home')">Home</button>
+<button onclick="showSection('profile')">Profile</button>
+<button onclick="showSection('generator')">Generate</button>
 <button onclick="showSection('withdraw')">Withdraw</button>
 </div>
 
-<!-- GENERATOR SECTION -->
-<div id="generator" class="section">
-<h3>Comment Generator</h3>
-<p>Click below to generate comment (No auto coins)</p>
-<button onclick="generateComment()">Generate Comment</button>
-<p id="generatedComment"></p>
+<!-- NOTICE (NEW PLACE) -->
+<div class="notice">
+⚠️ Daily Bonus Tabhi Withdraw  Hoga Jab Aap :<br>
+- 15 days continuous bonus Claim Kare <br>
+Agar 1 din miss → bonus reset
 </div>
 
-<!-- WITHDRAW SECTION -->
+<!-- HOME -->
+<div id="home" class="section">
+<h3>Home</h3>
+<button onclick="claimBonus()">Claim Daily Bonus (+1₹)</button>
+<p id="bonusMsg"></p>
+</div>
+
+<!-- PROFILE -->
+<div id="profile" class="section">
+<h3>Profile</h3>
+<p>Name: <span id="pname"></span></p>
+<p>Email: <span id="pemail"></span></p>
+<p>Your ID: <span id="userID"></span></p>
+
+<p>Your Referral Link:</p>
+<input id="refLink" style="width:100%">
+<button class="copy-btn" onclick="copyRef()">Copy</button>
+</div>
+
+<!-- GENERATOR -->
+<div id="generator" class="section">
+<h3>Choose App</h3>
+<div class="app-list">
+<button onclick="selectApp('YouTube')">YouTube</button>
+<button onclick="selectApp('Instagram')">Instagram</button>
+<button onclick="selectApp('Facebook')">Facebook</button>
+<button onclick="selectApp('Google')">Google</button>
+<button onclick="selectApp('Play Store')">Play Store</button>
+</div>
+
+<h3>Generate Comment</h3>
+<button onclick="generateComment()">Generate</button>
+<p id="generatedComment"></p>
+<button class="copy-btn" onclick="copyComment()">Copy Comment</button>
+
+<h3>Upload Screenshot</h3>
+<input type="file" id="ss" accept="image/*">
+<button onclick="uploadSS()">Submit</button>
+<p id="ssMsg"></p>
+</div>
+
+<!-- WITHDRAW -->
 <div id="withdraw" class="section">
-<h3>Withdraw Coins</h3>
-<input type="text" id="upi" placeholder="Enter UPI ID">
-<input type="number" id="amount" placeholder="Enter Coins">
-<button onclick="requestWithdrawal()">Request Withdraw</button>
+<input type="text" id="upi" placeholder="Enter UPI">
+<input type="number" id="amount" placeholder="Coins">
+<button onclick="requestWithdrawal()">Withdraw</button>
 <p id="withdrawMsg"></p>
 </div>
 
+<!-- HISTORY -->
+<div id="history" class="section">
+<h3>Withdraw History</h3>
+<ul id="historyList"></ul>
+</div>
+
+<!-- SUPPORT -->
+<div id="support" class="section">
+<h3>Customer Support</h3>
+<a href="https://t.me/MaihuOm7" target="_blank">Message @MaihuOm7</a><br><br>
+<button onclick="showHome()">Go to Home</button>
+</div>
+
+<!-- WEBSITE REVIEWS -->
+<div class="review-box">
+<h3>Website Reviews</h3>
+<div id="reviews"></div>
+</div>
+
 <script>
-// 🔥 TUMHARA FIREBASE CONFIG (JO TUMNE DIYA THA)
+/* ===== FIREBASE ===== */
 const firebaseConfig = {
-apiKey: "AIzaSyAbG7082Q3AjK8Ca_Zio0D3NtF92A0BLME",
-authDomain: "review-website-54473.firebaseapp.com",
-projectId: "review-website-54473",
-storageBucket: "review-website-54473.firebasestorage.app",
-messagingSenderId: "456159060189",
-appId: "1:456159060189:web:c0daefe6e4ebfd271d3b34",
-measurementId: "G-L5C53HCZVY",
-databaseURL: "https://review-website-54473-default-rtdb.firebaseio.com/"
+apiKey: "YOUR_API_KEY",
+databaseURL: "https://review-website-54473-default-rtdb.firebaseio.com/",
+projectId: "review-website-54473"
 };
 
 firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const database = firebase.database();
+const db = firebase.database();
 
 let user = null;
 
-// REAL GOOGLE LOGIN
-function loginWithGoogle(){
-document.getElementById("loadingScreen").style.display="flex";
+/* ===== GENERATE UNIQUE ID ===== */
+async function generateUserID(email){
+if(email === "your@gmail.com"){ // 👉 YAHAN APNI EMAIL DAALNA
+return "786";
+}
 
-let provider = new firebase.auth.GoogleAuthProvider();
+let snap = await db.ref("lastID").once("value");
+let last = snap.exists() ? snap.val() : 786;
 
-auth.signInWithPopup(provider)
-.then((result)=>{
-let u = result.user;
+let newID = last + 1;
+await db.ref("lastID").set(newID);
+
+return newID.toString();
+}
+
+/* ===== REGISTER ===== */
+async function register(){
+let email = document.getElementById("email").value.trim();
+let pass = document.getElementById("password").value.trim();
+
+if(!email || !pass){
+document.getElementById("loginMsg").innerText="Enter email & password";
+return;
+}
+
+let key = email.replace(/\./g,"_");
+
+let id = await generateUserID(email);
 
 user = {
-uid: u.uid,
-name: u.displayName || u.email.split("@")[0],
-email: u.email,
-coins: 0,
-withdrawals: []
+email:email,
+pass:pass,
+coins:0,
+referrals:0,
+bonusStreak:0,
+lastBonus:null,
+created:new Date().toLocaleDateString(),
+uid:id
 };
 
-// SAVE USER IN FIREBASE
-database.ref("users/"+user.uid).set(user);
+db.ref("accounts/"+key).set(user);
+localStorage.setItem("loginKey", key);
+startApp();
+}
 
-document.getElementById("loadingScreen").style.display="none";
-document.getElementById("loginScreen").style.display="none";
-document.getElementById("mainHeader").style.display="block";
-document.getElementById("mainContainer").style.display="block";
+/* ===== LOGIN ===== */
+function login(){
+let email = document.getElementById("email").value.trim();
+let pass = document.getElementById("password").value.trim();
+let key = email.replace(/\./g,"_");
 
-showSection('generator');
-updateUI();
-})
-.catch(err=>{
-alert("Login failed: "+err.message);
-document.getElementById("loadingScreen").style.display="none";
+db.ref("accounts/"+key).once("value").then(snap=>{
+if(!snap.exists()){document.getElementById("loginMsg").innerText="Not registered!";return;}
+let data = snap.val();
+if(data.pass !== pass){document.getElementById("loginMsg").innerText="Wrong password!";return;}
+
+user = data;
+localStorage.setItem("loginKey", key);
+startApp();
 });
 }
 
-// LOAD USER IF ALREADY LOGGED IN
+/* ===== AUTO LOGIN ===== */
 window.onload = function(){
-auth.onAuthStateChanged((currentUser)=>{
-if(currentUser){
-database.ref("users/"+currentUser.uid).once("value", (snap)=>{
+let savedKey = localStorage.getItem("loginKey");
+if(savedKey){
+db.ref("accounts/"+savedKey).once("value").then(snap=>{
+if(snap.exists()){
 user = snap.val();
+startApp();
+}
+});
+}
+};
 
+/* ===== START APP ===== */
+function startApp(){
 document.getElementById("loginScreen").style.display="none";
 document.getElementById("mainHeader").style.display="block";
 document.getElementById("mainContainer").style.display="block";
-
-showSection('generator');
-updateUI();
-});
+setupUI();
+showHome();
 }
-});
-};
 
-// UI FUNCTIONS
+function logout(){
+localStorage.removeItem("loginKey");
+location.reload();
+}
+
+/* ===== UI ===== */
+function toggleDots(){
+let m = document.getElementById("threeDotsMenu");
+m.style.display = m.style.display=="block" ? "none":"block";
+}
+
 function showSection(id){
-document.getElementById("generator").style.display="none";
-document.getElementById("withdraw").style.display="none";
+["home","profile","generator","withdraw","history","support"].forEach(x=>{
+document.getElementById(x).style.display="none";
+});
 document.getElementById(id).style.display="block";
 }
 
-function updateUI(){
+function showHome(){showSection('home');}
+function showProfile(){showSection('profile');}
+function showHistory(){loadHistory();showSection('history');}
+function showSupport(){showSection('support');}
+
+function setupUI(){
 document.getElementById("coinCount").innerText = user.coins;
+document.getElementById("coinRupees").innerText = user.coins;
+document.getElementById("refCount").innerText = user.referrals;
+document.getElementById("pname").innerText = user.email.split("@")[0];
+document.getElementById("pemail").innerText = user.email;
+document.getElementById("userID").innerText = user.uid;
+document.getElementById("createDate").innerText = user.created;
+
+document.getElementById("refLink").value =
+window.location.origin + "?ref=" + user.uid;
+makeStreak();
+loadReviews();
 }
 
-// GENERATE COMMENT (NO COINS ADD)
-function generateComment(){
-let comments = [
-"Great app!",
-"Nice service!",
-"Very helpful!",
-"Amazing experience!"
-];
+/* ===== COPY FUNCTIONS ===== */
+function copyComment(){
+let txt = document.getElementById("generatedComment").innerText;
+navigator.clipboard.writeText(txt);
+alert("Copied!");
+}
 
+function copyRef(){
+let link = document.getElementById("refLink").value;
+navigator.clipboard.writeText(link);
+alert("Referral link copied!");
+}
+
+/* ===== DAILY BONUS ===== */
+function claimBonus(){
+let today = new Date().toDateString();
+
+if(user.lastBonus===today){
+document.getElementById("bonusMsg").innerText="Already claimed today!";
+return;
+}
+
+let yesterday = new Date();
+yesterday.setDate(yesterday.getDate()-1);
+
+if(user.lastBonus!==yesterday.toDateString()){
+user.bonusStreak = 0;
+user.coins = 0;
+}
+
+user.bonusStreak += 1;
+user.lastBonus = today;
+user.coins += 1;
+
+saveUser();
+setupUI();
+document.getElementById("bonusMsg").innerText="✅ +1 Coin Added!";
+}
+
+/* ===== STREAK CALENDAR ===== */
+function makeStreak(){
+let box = document.getElementById("streakBox");
+box.innerHTML="";
+for(let i=1;i<=30;i++){
+let d = document.createElement("div");
+d.innerText=i;
+if(i<=user.bonusStreak) d.classList.add("day-done");
+box.appendChild(d);
+}
+}
+
+/* ===== COMMENTS ===== */
+let comments = Array(50).fill("Amazing app! 5⭐");
+
+function selectApp(app){alert("Selected: "+app);}
+
+function generateComment(){
 let c = comments[Math.floor(Math.random()*comments.length)];
 document.getElementById("generatedComment").innerText = c;
 }
 
-// WITHDRAW REQUEST
-function requestWithdrawal(){
-let upi = document.getElementById("upi").value;
-let amount = document.getElementById("amount").value;
+/* ===== SCREENSHOT ===== */
+function uploadSS(){
+let file = document.getElementById("ss").files[0];
+if(!file){alert("Select image");return;}
 
-if(!upi || !amount){
-document.getElementById("withdrawMsg").innerText = "Enter UPI and amount!";
-return;
-}
-
-database.ref("withdrawals/"+user.uid).push({
-name: user.name,
-email: user.email,
-coins: amount,
-upi: upi,
-status: "Pending",
-date: new Date().toLocaleString()
+db.ref("screenshots/"+user.uid).push({
+name:user.email,
+fileName:file.name,
+date:new Date().toLocaleString()
 });
 
-document.getElementById("withdrawMsg").innerText = "Request sent to admin!";
+document.getElementById("ssMsg").innerText="Submitted (Admin will check)";
 }
 
+/* ===== WITHDRAW ===== */
+function requestWithdrawal(){
+let upi=document.getElementById("upi").value;
+let amt=document.getElementById("amount").value;
+if(!upi||!amt){return;}
+
+db.ref("withdrawals/"+user.uid).push({
+email:user.email,coins:amt,upi:upi,status:"Pending",
+date:new Date().toLocaleString()
+});
+
+document.getElementById("withdrawMsg").innerText="Request sent!";
+}
+
+/* ===== HISTORY ===== */
+function loadHistory(){
+let list=document.getElementById("historyList");
+list.innerHTML="";
+db.ref("withdrawals/"+user.uid).once("value",s=>{
+s.forEach(ch=>{
+let li=document.createElement("li");
+li.innerText=ch.val().coins+" coins - "+ch.val().status;
+list.appendChild(li);
+});
+});
+}
+
+/* ===== REVIEWS ===== */
+function loadReviews(){
+let r=document.getElementById("reviews");
+let sample = [
+"Great platform ⭐⭐⭐⭐⭐",
+"Very smooth experience ⭐⭐⭐⭐",
+"Good earning app ⭐⭐⭐⭐⭐",
+"Trusted site ⭐⭐⭐⭐",
+"Amazing work ⭐⭐⭐⭐"
+];
+
+sample.forEach(x=>{
+let d=document.createElement("div");
+d.className="review";
+d.innerText=x;
+r.appendChild(d);
+});
+}
+
+/* SAVE USER */
+function saveUser(){
+let key = user.email.replace(/\./g,"_");
+db.ref("accounts/"+key).set(user);
+}
 </script>
 
 </body>
